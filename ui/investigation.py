@@ -13,54 +13,73 @@ def _F(key):
     return _fonts_mod.FONTS[key]
 
 
-def evaluate_cross_check( f1: ClickableField, f2: ClickableField, person) -> tuple:
+_SOURCE_LABEL = {
+    "passport": "PASSPORT",
+    "id": "ID CARD",
+    "work_permit": "WORK PERMIT",
+    "entry_permit": "ENTRY PERMIT",
+    "traveler": "TRAVELER",
+}
+
+
+def _src(f: ClickableField) -> str:
+    return _SOURCE_LABEL.get(f.source, f.source.upper())
+
+
+def evaluate_cross_check(f1: ClickableField, f2: ClickableField,
+                         person, allowed_nations: set | None = None) -> tuple:
 
     if f1.key == f2.key:
         return False, None, "SELECT TWO DIFFERENT FIELDS"
 
     g1, g2 = f1.group, f2.group
+    tag = f"{_src(f1)} vs {_src(f2)}"
 
     if "expiry" in (g1, g2):
         exp = f1 if g1 == "expiry" else f2
         try:
             year = int(exp.value.split(".")[-1])
         except ValueError:
-            return True, False, "DISCREPANCY DETECTED  —  UNREADABLE EXPIRY DATE"
+            return True, False, f"{_src(exp)}  —  UNREADABLE EXPIRY DATE"
         if year < CURRENT_YEAR:
-            return True, False, f"DISCREPANCY DETECTED  —  DOCUMENT EXPIRED ({year} < {CURRENT_YEAR})"
-        return True, True, f"CORRECT DATA  —  DOCUMENT VALID UNTIL {year}"
+            return True, False, f"{_src(exp)}  —  DOCUMENT EXPIRED ({year} < {CURRENT_YEAR})"
+        return True, True, f"{_src(exp)}  —  DOCUMENT VALID UNTIL {year}"
 
     if g1 == g2 and g1 != "":
         if g1 == "name":
             ok = f1.value.strip().upper() == f2.value.strip().upper()
             return True, ok, (
-                "CORRECT DATA  —  NAMES MATCH"
-                if ok else "DISCREPANCY DETECTED  —  NAME MISMATCH"
+                f"{tag}  —  NAMES MATCH"
+                if ok else f"{tag}  —  NAME MISMATCH"
             )
         if g1 == "birth":
             ok = f1.value.strip() == f2.value.strip()
             return True, ok, (
-                "CORRECT DATA  —  BIRTH DATES MATCH"
-                if ok else "DISCREPANCY DETECTED  —  BIRTH DATE MISMATCH"
+                f"{tag}  —  BIRTH DATES MATCH"
+                if ok else f"{tag}  —  BIRTH DATE MISMATCH"
             )
         if g1 == "nation":
             ok = f1.value.strip().upper() == f2.value.strip().upper()
+            if ok and allowed_nations is not None:
+                nation_val = f1.value.strip()
+                if nation_val not in allowed_nations:
+                    return True, False, f"{tag}  —  {nation_val} NOT PERMITTED TODAY"
             return True, ok, (
-                f"CORRECT DATA  —  NATIONS MATCH  [{f1.value}]"
+                f"{tag}  —  NATIONS MATCH  [{f1.value}]"
                 if ok else
-                f"DISCREPANCY DETECTED  —  NATION MISMATCH  [{f1.value} vs {f2.value}]"
+                f"{tag}  —  NATION MISMATCH  [{f1.value} vs {f2.value}]"
             )
         if g1 == "sex":
             ok = f1.value.strip().upper() == f2.value.strip().upper()
             return True, ok, (
-                "CORRECT DATA  —  SEX FIELDS MATCH"
-                if ok else "DISCREPANCY DETECTED  —  SEX FIELD MISMATCH"
+                f"{tag}  —  SEX FIELDS MATCH"
+                if ok else f"{tag}  —  SEX FIELD MISMATCH"
             )
         if g1 == "photo":
             ok = person.doc_index == person.face_index
             return True, ok, (
-                "CORRECT DATA  —  PHOTO MATCHES TRAVELER"
-                if ok else "DISCREPANCY DETECTED  —  PHOTO DOES NOT MATCH TRAVELER"
+                f"{tag}  —  PHOTO MATCHES TRAVELER"
+                if ok else f"{tag}  —  PHOTO DOES NOT MATCH TRAVELER"
             )
 
     return False, None, "NO CORRELATION  —  THESE FIELDS ARE UNRELATED"

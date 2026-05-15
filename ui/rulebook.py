@@ -3,6 +3,7 @@ import pygame
 from core.constants import C, W, H, CURRENT_YEAR
 import core.fonts as _fonts_mod
 from core.draw_utils import text
+from core import sounds as sfx
 
 BOOK_RECT = pygame.Rect(W - 175, 428, 145, 92)
 
@@ -14,8 +15,11 @@ class RuleBook:
     def handle_event(self, event: pygame.event.Event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if BOOK_RECT.collidepoint(event.pos):
+                sfx.play("click")
                 self.open = True
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            if self.open:
+                sfx.play("click")
             self.open = False
 
     def draw_closed(self, surf: pygame.Surface):
@@ -32,15 +36,18 @@ class RuleBook:
         text(surf, "[click]", "small", C["text_dim"], r.centerx + 6, r.top + 66, center=True)
         pygame.draw.rect(surf, (50, 30, 8), r, 2, border_radius=5)
 
-    def draw_overlay(self, surf: pygame.Surface, allowed_nations):
+    def draw_overlay(self, surf: pygame.Surface, allowed_nations,
+                     required_docs=None):
         if not self.open:
             return
+        if required_docs is None:
+            required_docs = ["passport", "id"]
 
         dim = pygame.Surface((W, H), pygame.SRCALPHA)
         dim.fill((0, 0, 0, 170))
         surf.blit(dim, (0, 0))
 
-        bw, bh = 720, 480
+        bw, bh = 720, 520
         bx = (W - bw) // 2
         by = (H - bh) // 2
 
@@ -54,38 +61,73 @@ class RuleBook:
         text(surf, "Ministry of Admission — Edition 1982", "small", (140, 110, 60), lx, ly + 20)
         pygame.draw.line(surf, (160, 130, 70), (lx, ly + 36), (bx + bw // 2 - 18, ly + 36), 1)
 
+        _DOC_NAMES = {
+            "passport": "A valid Passport",
+            "id": "A Citizen ID Card",
+            "work_permit": "A Work Permit",
+            "entry_permit": "An Entry Permit",
+        }
+
         rules = [
             ("REQUIRED DOCUMENTS",               True),
             ("Every traveler must present:",      False),
-            ("  1. A valid Passport",             False),
-            ("  2. A Citizen ID Card",            False),
+        ]
+        for i, doc_id in enumerate(required_docs, 1):
+            rules.append((f"  {i}. {_DOC_NAMES.get(doc_id, doc_id)}", False))
+
+        rules += [
             ("",                                  False),
             ("PASSPORT CHECKS",                   True),
             ("- Must not be expired (>= 1982)",   False),
             ("- Issuing nation must match ID",    False),
             ("- Photo must match the traveler",   False),
-            ("",                                  False),
-            ("ID CARD CHECKS",                    True),
-            ("- Name must match passport",        False),
-            ("- Birth date must match passport",  False),
-            ("- Photo must match the traveler",   False),
+        ]
+
+        if "id" in required_docs:
+            rules += [
+                ("",                                  False),
+                ("ID CARD CHECKS",                    True),
+                ("- Name must match passport",        False),
+                ("- Birth date must match passport",  False),
+                ("- Photo must match the traveler",   False),
+            ]
+
+        if "work_permit" in required_docs:
+            rules += [
+                ("",                                  False),
+                ("WORK PERMIT CHECKS",                True),
+                ("- Name must match passport",        False),
+                ("- Nation must match passport",       False),
+                ("- Must not be expired (>= 1982)",   False),
+            ]
+
+        if "entry_permit" in required_docs:
+            rules += [
+                ("",                                  False),
+                ("ENTRY PERMIT CHECKS",               True),
+                ("- Name must match passport",        False),
+                ("- Nation must match passport",       False),
+                ("- Must not be expired (>= 1982)",   False),
+            ]
+
+        rules += [
             ("",                                  False),
             ("VERDICTS",                          True),
-            ("APPROVE  [A]  — all checks pass",   False),
-            ("DENY  [D]  — any check fails",      False),
+            ("APPROVE [A] — all checks pass",     False),
+            ("DENY [D] — any check fails",        False),
+            ("DETAIN [F] — forged documents",     False),
             ("",                                  False),
-            ("INVESTIGATION  [SPACE]",            True),
-            ("Press SPACE to enter/exit mode.",   False),
-            ("Click any text or photo on the",    False),
-            ("documents or traveler panel.",      False),
-            ("Select 2 fields to cross-check.",   False),
+            ("INVESTIGATION [SPACE]",             True),
+            ("Click 2 fields to cross-check.",    False),
+            ("INTERROGATION [Q]",                 True),
+            ("Click a field to question traveler.", False),
             ("",                                  False),
             ("Press ESC to close this book",      False),
         ]
         for i, (line, header) in enumerate(rules):
             col  = (80, 45, 10) if header else (35, 30, 20)
             fkey = "book_t" if header else "book"
-            text(surf, line, fkey, col, lx, ly + 46 + i * 16)
+            text(surf, line, fkey, col, lx, ly + 46 + i * 14)
 
         rx, ry = bx + bw // 2 + 20, by + 22
         text(surf, "TODAY'S BULLETIN", "book_t", (70, 40, 10), rx, ry)

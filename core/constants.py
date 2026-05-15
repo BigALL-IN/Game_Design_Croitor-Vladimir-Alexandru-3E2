@@ -7,8 +7,12 @@ DOC_DIR    = SCRIPT_DIR / "NPC_Documents"
 W, H = 1200, 800
 FPS  = 60
 
-DAY_TIMER_SECONDS = 60
+DAY_TIMER_SECONDS = 10
 CORRECT_REWARD    = 10
+VERDICT_DELAY_FRAMES = 120
+
+DETAIN_BONUS              = 5
+DETAIN_INNOCENT_MULTIPLIER = 2
 
 PENALTY_SCHEDULE  = [0, 0, 5, 10, 15, 20, 25, 30]
 
@@ -48,6 +52,26 @@ C = {
     "family_hp":   (210,  55,  55),
     "family_ok":   ( 50, 200,  80),
 }
+
+
+DOCUMENT_SCHEDULE = {
+    1: ["passport"],
+    2: ["passport", "id"],
+    4: ["passport", "id", "work_permit"],
+    6: ["passport", "id", "work_permit", "entry_permit"],
+}
+
+
+def get_required_docs(day: int) -> list:
+    best = 1
+    for k in DOCUMENT_SCHEDULE:
+        if k <= day and k > best:
+            best = k
+    return DOCUMENT_SCHEDULE[best]
+
+
+def get_day_timer(day: int) -> int:
+    return min(1, 35 - (day - 1) * 3)
 
 
 def get_penalty(mistake_count: int) -> int:

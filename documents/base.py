@@ -7,7 +7,7 @@ from typing import Optional
 import pygame
 
 from core.constants import C
-from core.fonts import FONTS
+import core.fonts as _fonts_mod
 
 PAD_X = 5
 PAD_Y = 2
@@ -84,7 +84,7 @@ class DocumentTemplate(abc.ABC):
         )
 
 
-# ── DocumentWidget ────────────────────────────────────────────────────────────
+
 class DocumentWidget:
     def __init__(self, template: DocumentTemplate, person, start_pos: tuple):
         self.template = template
@@ -125,9 +125,14 @@ class DocumentWidget:
                 pygame.draw.rect(surf, col, f.screen_rect, th, border_radius=2)
 
         if self.stamp and self.stamp_alpha > 0:
-            stamp_s = FONTS["stamp"].render(
-                self.stamp, True,
-                C["stamp_appr"] if self.stamp == "APPROVED" else C["stamp_deny"],
+            if self.stamp == "APPROVED":
+                stamp_col = C["stamp_appr"]
+            elif self.stamp == "DETAINED":
+                stamp_col = (200, 120, 30)
+            else:
+                stamp_col = C["stamp_deny"]
+            stamp_s = _fonts_mod.FONTS["stamp"].render(
+                self.stamp, True, stamp_col,
             )
             stamp_s.set_alpha(min(255, self.stamp_alpha))
             rotated = pygame.transform.rotate(stamp_s, -20)

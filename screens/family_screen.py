@@ -4,6 +4,7 @@ from core.constants import (
     C, W, H, FAMILY_FEED_COST, FAMILY_HP_MAX, CURRENT_YEAR,
 )
 from core.draw_utils import text
+from core import sounds as sfx
 
 MEMBERS = ["wife", "daughter", "son"]
 
@@ -31,8 +32,10 @@ class FamilyScreen:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for m, r in self.btn_rects.items():
                 if r and r.collidepoint(event.pos):
+                    sfx.play("click")
                     self._toggle_feed(m)
             if self._confirm_rect().collidepoint(event.pos):
+                sfx.play("click")
                 self.confirm()
 
     def _toggle_feed(self, member: str):

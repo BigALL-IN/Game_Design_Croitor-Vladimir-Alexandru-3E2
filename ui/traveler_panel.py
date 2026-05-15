@@ -10,11 +10,15 @@ NPC_PANEL_RECT = pygame.Rect(W - 340, 20, 320, 360)
 
 def make_traveler_fields(person, panel_rect: pygame.Rect) -> list:
     face_rect = pygame.Rect(panel_rect.centerx - 90, panel_rect.top + 50, 180, 180)
+    name_rect = pygame.Rect(panel_rect.left + 10, panel_rect.bottom - 74,
+                            panel_rect.width - 20, 18)
     nation_rect = pygame.Rect(panel_rect.left + 10, panel_rect.bottom - 54,
                               panel_rect.width - 20, 18)
     fields = [
         ClickableField("tr_face",   "TRAVELER › FACE",
                        f"face#{person.face_index:03d}", "photo", "traveler", face_rect),
+        ClickableField("tr_name",   "TRAVELER › NAME",
+                       person.full_name, "name", "traveler", name_rect),
         ClickableField("tr_nation", "TRAVELER › NATION",
                        person.nation, "nation", "traveler", nation_rect),
     ]
@@ -24,7 +28,8 @@ def make_traveler_fields(person, panel_rect: pygame.Rect) -> list:
 
 
 def draw_traveler_panel(surf: pygame.Surface, person, inv_active: bool,
-                        selected_keys: list, traveler_fields: list):
+                        selected_keys: list, traveler_fields: list,
+                        interrog_active: bool = False):
     wr = NPC_PANEL_RECT
     pygame.draw.rect(surf, C["npc_bg"], wr, border_radius=6)
     pygame.draw.rect(surf, C["border"], wr, 3, border_radius=6)
@@ -42,11 +47,18 @@ def draw_traveler_panel(surf: pygame.Surface, person, inv_active: bool,
     text(surf, f"From: {person.nation}",   "mono",  C["text_light"], nt.centerx, nt.top + 26, center=True)
     text(surf, f"Occupation: {person.occupation}", "small", C["text_dim"], nt.centerx, nt.top + 44, center=True)
 
-    hint     = "[SPACE] Exit Investigate" if inv_active else "[SPACE] Investigate"
-    hint_col = C["inv_mode"] if inv_active else C["text_dim"]
+    if interrog_active:
+        hint = "[Q] Exit Interrogation"
+        hint_col = C["inv_mode"]
+    elif inv_active:
+        hint = "[SPACE] Exit Investigate"
+        hint_col = C["inv_mode"]
+    else:
+        hint = "[SPACE] Investigate  [Q] Interrogate"
+        hint_col = C["text_dim"]
     text(surf, hint, "small", hint_col, wr.centerx, wr.bottom + 8, center=True)
 
-    if inv_active:
+    if inv_active or interrog_active:
         for f in traveler_fields:
             if f.screen_rect is None:
                 continue
